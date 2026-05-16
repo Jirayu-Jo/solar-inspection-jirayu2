@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<!-- ประกาศว่าเอกสารนี้เป็น HTML5 มาตรฐานล่าสุด -->
+<html lang="th">
+<!-- กำหนดภาษาของหน้าเป็นภาษาไทย ช่วย screen reader และ SEO -->
+
+<head>
+  <!-- ส่วนหัว: ไม่แสดงบนหน้าจอ แต่บอก browser ว่าหน้านี้เป็นอะไร -->
+  <meta charset="UTF-8">
+  <!-- รองรับตัวอักษรทุกภาษารวมถึงภาษาไทย -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- ทำให้หน้าเว็บ responsive บนมือถือ ไม่ zoom out อัตโนมัติ -->
+  <title>Solar Rooftop Inspection App</title>
+  <!-- ชื่อที่แสดงบน tab ของ browser -->
+
+  <!-- ====================================================
+       SECTION 1: CSS STYLES - ตกแต่งหน้าตาทั้งหมด
+       ==================================================== -->
+  <style>
+
+    /* --- RESET & BASE --- */
+    * {
+      box-sizing: border-box; /* ให้ padding/border รวมอยู่ใน width/height แล้ว ไม่ขยายออก */
+      margin: 0;              /* ลบ margin default ของ browser ทุก element */
+      padding: 0;             /* ลบ padding default ของ browser ทุก element */
+    }
+
+    .app {
+      font-family: var(--font-sans); /* ใช้ font ระบบ (system font) ที่ Claude กำหนดไว้ */
+      color: var(--color-text-primary); /* สีตัวอักษรหลักจาก CSS variable ของ Claude */
+      background: #0a0a0a;   /* พื้นหลังสีดำเกือบสนิท (dark theme) */
+      min-height: 600px;     /* กำหนดความสูงขั้นต่ำ 600px ไม่ให้แอปสั้นเกินไป */
+    }
+
+    /* --- TAB BAR: แถบเมนูด้านบนสำหรับสลับหน้า --- */
+    .tab-bar {
+      display: flex;              /* จัดแถบ tab เรียงแนวนอน */
+      background: #0d0d0d;       /* พื้นหลังเข้มกว่า app เล็กน้อย */
+      border-bottom: 1px solid #1e1e1e; /* เส้นขอบล่างสีเทาเข้ม */
+      padding: 0 16px;           /* เว้นซ้าย-ขวา 16px */
+      gap: 2px;                  /* ระยะห่างระหว่าง tab แต่ละอัน 2px */
+    }
+
+    .tab {
+      padding: 10px 16px;        /* เว้นข้างบน-ล่าง 10px, ซ้าย-ขวา 16px */
+      font-size: 12px;           /* ขนาดตัวอักษร 12px */
+      font-weight: 500;          /* ความหนาตัวอักษรระดับกลาง */
+      color: #666;               /* สีเทากลาง (tab ที่ไม่ active) */
+      cursor: pointer;           /* เปลี่ยน cursor เป็นมือเมือ hover */
+      border-bottom: 2px solid transparent; /* เส้นขอบล่าง 2px โปร่งใส (จะเปลี่ยนสีเมื่อ active) */
+      transition: all .15s;      /* animation เปลี่ยนสีใช้เวลา 0.15 วินาที */
+      letter-spacing: .02em;     /* ระยะห่างระหว่างตัวอักษรเล็กน้อย */
+      white-space: nowrap;       /* ไม่ตัดบรรทัดข้อความใน tab */
+    }
+
+    .tab.active {
+      color: #c8f53a;            /* สีเหลือง-เขียวสด เมื่อ tab นั้นถูกเลือก */
+      border-bottom-color: #c8f53a; /* เส้นขอบล่างสีเดียวกัน ทำให้รู้ว่า active */
+    }
+
+    /* --- PANEL: พื้นที่เนื้อหาของแต่ละ tab --- */
+    .panel {
+      display: none;             /* ซ่อน panel ทั้งหมดไว้ก่อน */
+      padding: 16px;             /* เว้นรอบด้าน 16px */
+      animation: fadeIn .2s;    /* เล่น animation fadeIn 0.2 วินาทีเมื่อ panel แสดง */
+    }
+
+    .panel.active {
+      display: block;            /* แสดง panel ที่มี class active */
+    }
+
+    @keyframes fadeIn {
+      from { opacity: .5; }     /* เริ่มต้นที่ความโปร่งใส 50% */
+      to   { opacity: 1;  }     /* จบที่ความโปร่งใส 100% (มองเห็นสมบูรณ์) */
+    }
+
+    /* --- HEADER BAR: แถบหัวเรื่องใน panel Inspection --- */
+    .header-bar {
+      background: #111;          /* พื้นหลังสีเทาเข้ม */
+      border: 1px solid #1e1e1e; /* เส้นขอบบาง ๆ */
+      border-radius: 10px;       /* มุมโค้ง 10px */
+      padding: 12px 14px;        /* padding ข้างบน-ล่าง 12px, ซ้าย-ขวา 14px */
+      margin-bottom: 12px;       /* ระยะห่างด้านล่าง 12px */
+      display: flex;             /* จัดเนื้อหาเรียงแนวนอน */
+      align-items: center;       /* จัดกึ่งกลางแนวตั้ง */
+      gap: 10px;                 /* ระยะห่างระหว่าง element 10px */
+    }
+
+    .logo {
+      background: #c8f53a;       /* พื้นหลังสีเหลือง-เขียว */
+      color: #0a0a0a;            /* ตัวอักษรสีดำ */
+      width: 28px;               /* กว้าง 28px */
+      height: 28px;              /* สูง 28px */
+      border-radius: 6px;        /* มุมโค้ง 6px ดูเหมือนสี่เหลี่ยมมน */
+      display: flex;             /* จัดเนื้อหาภายใน */
+      align-items: center;       /* จัดกึ่งกลางแนวตั้ง */
+      justify-content: center;   /* จัดกึ่งกลางแนวนอน */
+      font-size: 14px;           /* ขนาด emoji ☀ */
+      font-weight: 700;          /* ตัวหนา */
+      flex-shrink: 0;            /* ห้ามย่อขนาดเมื่อพื้นที่แคบ */
+    }
+
+    .hdr-title {
+      font-size: 13px;           /* ขนาดตัวอักษรชื่อ app */
+      font-weight: 500;          /* น้ำหนักตัวอักษรกลาง */
+      color: #e0e0e0;            /* สีขาวอมเทา */
+      flex: 1;                   /* ขยายเต็มพื้นที่ที่เหลือ */
+    }
+
+    .hdr-sub {
+      font-size: 11px;           /* ขนาดเล็กกว่า ใช้แสดงวันที่ */
+      color: #666;               /* สีเทากลาง */
+      margin-top: 1px;           /* ระยะห่างจาก title 1px */
+    }
+
+    /* --- PROGRESS BAR: แถบแสดงความคืบหน้าการตรวจ --- */
+    .prog-bar {
+      flex: 1;                   /* ขยายเต็มพื้นที่ */
+      height: 4px;               /* ความสูง 4px */
+      background: #1e1e1e;       /* พื้นหลังสีเทาเข้ม (ส่วนที่ยังไม่เสร็จ) */
+      border-radius: 2px;        /* มุมโค้งเล็กน้อย */
+    }
+
+    .prog-fill {
+      height: 100%;              /* เต็มความสูงของ prog-bar */
+      background: #c8f53a;       /* สีเหลือง-เขียว (ส่วนที่เสร็จแล้ว) */
+      border-radius: 2px;        /* มุมโค้งเหมือนกัน */
+      transition: width .3s;    /* animation เปลี่ยนความกว้างใช้ 0.3 วินาที */
+    }
+
+    /* --- META GRID: ตาราง 2 คอลัมน์สำหรับกรอกข้อมูลโครงการ --- */
+    .meta-grid {
+      display: grid;                          /* ใช้ CSS Grid */
+      grid-template-columns: 1fr 1fr;        /* แบ่งเป็น 2 คอลัมน์เท่ากัน */
+      gap: 8px;                              /* ระยะห่างระหว่างช่อง 8px */
+      margin-bottom: 12px;                   /* ระยะห่างด้านล่าง 12px */
+    }
+
+    .fld {
+      background: #111;          /* พื้นหลังเข้ม */
+      border: 1px solid #1e1e1e; /* เส้นขอบบาง */
+      border-radius: 8px;        /* มุมโค้ง */
+      padding: 8px 10px;         /* padding ภายใน */
+    }
+
+    .fld label {
+      display: block;            /* แสดงเป็น block (เต็มบรรทัด) */
+      font-size: 10px;           /* ขนาดเล็กมาก สำหรับ label */
+      color: #666;               /* สีเทากลาง */
+      text-transform: uppercase; /* แปลงเป็นตัวพิมพ์ใหญ่ */
+      letter-spacing: .06em;    /* เว้นระยะตัวอักษรมากขึ้น */
+      margin-bottom: 3px;        /* ระยะห่างก่อน input */
+    }
+
+    .fld input {
+      background: none;          /* โปร่งใส ไม่มีพื้นหลัง */
+      border: none;              /* ไม่มีเส้นขอบ (ใช้ขอบของ .fld แทน) */
+      outline: none;             /* ไม่แสดง outline เมื่อ focus */
+      color: #e0e0e0;            /* สีตัวอักษรขาวอมเทา */
+      font-size: 12px;           /* ขนาดตัวอักษรที่พิมพ์ */
+      width: 100%;               /* เต็มความกว้าง */
+      font-family: var(--font-sans); /* font เดียวกับ app */
+    }
+
+    .fld input::placeholder {
+      color: #444;               /* สี placeholder ตัวอักษรสีเทาเข้ม */
+    }
+
+    /* --- GATE CARD: กล่องแต่ละ Gate (Gate 1-5) --- */
+    .gate-card {
+      background: #111;          /* พื้นหลังสีเข้ม */
+      border: 1px solid #1e1e1e; /* เส้นขอบ */
+      border-radius: 10px;       /* มุมโค้ง */
+      margin-bottom: 8px;        /* ระยะห่างระหว่างกล่อง */
+      overflow: hidden;          /* ซ่อนส่วนที่เกินขอบมุมโค้ง */
+    }
+
+    .gate-hdr {
+      padding: 10px 12px;        /* padding หัว gate */
+      display: flex;             /* จัดเรียงแนวนอน */
+      align-items: center;       /* จัดกึ่งกลางแนวตั้ง */
+      gap: 8px;                  /* ระยะห่างระหว่าง element */
+      cursor: pointer;           /* cursor เป็นมือ (คลิกได้) */
+      user-select: none;         /* ป้องกันการ select ข้อความเมื่อ double-click */
+    }
+
+    .gate-hdr:hover {
+      background: #161616;       /* สีอ่อนขึ้นเล็กน้อยเมื่อ hover */
+    }
+
+    .gate-badge {
+      background: #c8f53a;       /* สีเหลือง-เขียว */
+      color: #0a0a0a;            /* ตัวอักษรสีดำ */
+      font-size: 9px;            /* ขนาดเล็กมาก */
+      font-weight: 700;          /* ตัวหนา */
+      padding: 2px 6px;          /* padding รอบข้อความ */
+      border-radius: 3px;        /* มุมโค้งเล็กน้อย */
+      letter-spacing: .04em;    /* เว้นระยะตัวอักษร */
+      flex-shrink: 0;            /* ห้ามย่อขนาด */
+    }
+
+    .gate-name {
+      flex: 1;                   /* ขยายเต็มพื้นที่ที่เหลือ */
+      font-size: 12px;           /* ขนาดชื่อ Gate */
+      font-weight: 500;          /* น้ำหนักกลาง */
+      color: #ccc;               /* สีเทาอ่อน */
+    }
+
+    .gate-prog {
+      font-size: 10px;           /* ขนาดเล็ก สำหรับแสดง "0/4" */
+      color: #666;               /* สีเทากลาง */
+      margin-right: 4px;         /* ระยะห่างก่อน chevron */
+    }
+
+    .gate-chev {
+      color: #555;               /* สีลูกศร */
+      font-size: 14px;           /* ขนาดลูกศร */
+      transition: transform .2s;/* animation หมุน */
+    }
+
+    .gate-chev.open {
+      transform: rotate(180deg); /* หมุน 180 องศาเมื่อ gate เปิด (ลูกศรชี้ขึ้น) */
+    }
+
+    /* --- GATE BODY: เนื้อหาภายใน gate ที่ซ่อน/แสดง --- */
+    .gate-body {
+      border-top: 1px solid #181818; /* เส้นคั่นระหว่าง header และเนื้อหา */
+      display: none;             /* ซ่อนไว้ก่อน (default collapsed) */
+    }
+
+    .gate-body.open {
+      display: block;            /* แสดงเมื่อ gate ถูกเปิด */
+    }
+
+    /* --- CHECK ITEM: แถวรายการตรวจสอบแต่ละข้อ --- */
+    .ci {
+      padding: 10px 12px;        /* padding ภายใน */
+      border-bottom: 1px solid #141414; /* เส้นคั่นระหว่างรายการ */
+    }
+
+    .ci:last-child {
+      border-bottom: none;       /* รายการสุดท้ายไม่มีเส้นล่าง */
+    }
+
+    .ci-top {
+      display: flex;             /* จัดเรียงแนวนอน */
+      align-items: flex-start;   /* จัดชิดด้านบน (เพราะข้อความอาจยาวหลายบรรทัด) */
+      gap: 6px;                  /* ระยะห่าง */
+    }
+
+    .ci-num {
+      font-size: 10px;           /* ขนาดเล็ก สำหรับเลขข้อ "1.1" */
+      color: #555;               /* สีเทาเข้ม */
+      min-width: 24px;           /* กว้างขั้นต่ำ ไม่ให้เลขบีบ */
+      padding-top: 1px;          /* เว้นบนเล็กน้อยให้ align กับข้อความ */
+    }
+
+    .ci-lbl {
+      flex: 1;                   /* ขยายเต็มพื้นที่ */
+      font-size: 12px;           /* ขนาดชื่อรายการ */
+      color: #bbb;               /* สีเทาอ่อน */
+      line-height: 1.4;          /* ระยะห่างระหว่างบรรทัด */
+    }
+
+    .ci-lbl small {
+      display: block;            /* แสดงในบรรทัดใหม่ */
+      font-size: 10px;           /* ขนาดเล็กกว่าสำหรับคำอธิบายภาษาไทย */
+      color: #555;               /* สีเทาเข้มกว่า */
+      margin-top: 1px;           /* ระยะห่างจากชื่อภาษาอังกฤษ */
+    }
+
+    /* --- P/F BUTTON GROUP: ปุ่ม Pass และ Fail --- */
+    .pf {
+      display: flex;             /* จัดเรียงปุ่มแนวนอน */
+      gap: 4px;                  /* ระยะห่างระหว่างปุ่ม P และ F */
+      margin-left: 2px;          /* ดันไปทางขวาเล็กน้อย */
+    }
+
+    .pb {
+      width: 30px;               /* กว้าง 30px */
+      height: 24px;              /* สูง 24px */
+      border: 1px solid #2a2a2a; /* เส้นขอบสีเทาเข้ม */
+      border-radius: 4px;        /* มุมโค้งเล็กน้อย */
+      background: #0a0a0a;       /* พื้นหลังเข้ม */
+      font-size: 11px;           /* ขนาดตัวอักษร P/F */
+      font-weight: 600;          /* ตัวหนา */
+      color: #555;               /* สีเทา (ยังไม่กด) */
+      cursor: pointer;           /* cursor เป็นมือ */
+      display: flex;             /* จัดตำแหน่งตัวอักษรภายใน */
+      align-items: center;       /* จัดกึ่งกลางแนวตั้ง */
+      justify-content: center;   /* จัดกึ่งกลางแนวนอน */
+      transition: all .12s;     /* animation เปลี่ยนสี 0.12 วินาที */
+      font-family: var(--font-sans);
+    }
+
+    .pb:hover {
+      border-color: #444;        /* เส้นขอบสว่างขึ้นเมื่อ hover */
+    }
+
+    /* สีเมื่อกดปุ่ม Pass (P) และ active */
+    .pb.P.on {
+      background: #152b08;       /* พื้นหลังเขียวเข้ม */
+      border-color: #3a7a10;     /* เส้นขอบเขียว */
+      color: #7dd43a;            /* ตัวอักษรเขียวสว่าง */
+    }
+
+    /* สีเมื่อกดปุ่ม Fail (F) และ active */
+    .pb.F.on {
+      background: #2b0808;       /* พื้นหลังแดงเข้ม */
+      border-color: #7a1010;     /* เส้นขอบแดง */
+      color: #e05050;            /* ตัวอักษรแดงสว่าง */
+    }
+
+    /* --- REMARK TEXTAREA: ช่องกรอกหมายเหตุ --- */
+    .ci-rem {
+      margin-top: 6px;           /* ระยะห่างจาก ci-top */
+      background: #0a0a0a;       /* พื้นหลังเข้ม */
+      border: 1px solid #1e1e1e; /* เส้นขอบบาง */
+      border-radius: 4px;        /* มุมโค้ง */
+      padding: 5px 7px;          /* padding ภายใน */
+      color: #888;               /* สีตัวอักษรเทากลาง */
+      font-size: 11px;           /* ขนาดเล็ก */
+      width: 100%;               /* เต็มความกว้าง */
+      resize: none;              /* ป้องกันผู้ใช้ resize ด้วยตัวเอง */
+      font-family: var(--font-sans);
+      height: 26px;              /* ความสูงเริ่มต้นเล็ก (1 บรรทัด) */
+      outline: none;             /* ไม่แสดง outline เมื่อ focus */
+      transition: height .15s;  /* animation ขยายความสูง 0.15 วินาที */
+    }
+
+    .ci-rem:focus {
+      height: 48px;              /* ขยายสูงขึ้นเมื่อ focus (พิมพ์ได้สบาย) */
+      color: #ccc;               /* สีตัวอักษรสว่างขึ้นเมื่อ active */
+      border-color: #2a2a2a;    /* เส้นขอบสว่างขึ้นเล็กน้อย */
+    }
+
+    /* --- PHOTO UPLOAD: แถวปุ่มแนบรูปภาพ --- */
+    .photo-row {
+      margin-top: 5px;           /* ระยะห่างจาก remark */
+      display: flex;             /* จัดเรียงแนวนอน */
+      align-items: center;       /* จัดกึ่งกลางแนวตั้ง */
+      gap: 6px;                  /* ระยะห่าง */
+      flex-wrap: wrap;           /* ตัดบรรทัดได้เมื่อรูปเยอะ */
+    }
+
+    .photo-btn-sm {
+      display: flex;             /* จัดไอคอนและข้อความเรียงแนวนอน */
+      align-items: center;       /* จัดกึ่งกลาง */
+      gap: 4px;                  /* ระยะห่างระหว่างไอคอนกับข้อความ */
+      background: #111;          /* พื้นหลังเข้ม */
+      border: 1px dashed #252525;/* เส้นประ (dashed) สีเทาเข้ม แสดงว่าเป็น upload zone */
+      border-radius: 5px;        /* มุมโค้ง */
+      padding: 4px 8px;          /* padding */
+      cursor: pointer;           /* cursor เป็นมือ */
+      color: #555;               /* สีตัวอักษรเทา */
+      font-size: 11px;           /* ขนาดเล็ก */
+      transition: all .12s;     /* animation */
+    }
+
+    .photo-btn-sm:hover {
+      border-color: #c8f53a;    /* เส้นประเปลี่ยนเป็นสีเหลือง-เขียวเมื่อ hover */
+      color: #c8f53a;           /* ตัวอักษรเปลี่ยนสีด้วย */
+    }
+
+    .thumb {
+      width: 40px;               /* กว้าง 40px */
+      height: 40px;              /* สูง 40px */
+      border-radius: 5px;        /* มุมโค้ง */
+      object-fit: cover;         /* ตัดรูปให้เต็ม 40x40 โดยไม่บิดเบี้ยว */
+      border: 1px solid #222;    /* เส้นขอบบาง */
+    }
+
+    /* --- SUMMARY STATS: กล่องสรุปตัวเลข checked/pass/fail --- */
+    .sum-grid {
+      display: grid;                          /* CSS Grid */
+      grid-template-columns: repeat(3, 1fr); /* 3 คอลัมน์เท่ากัน */
+      gap: 8px;                              /* ระยะห่าง */
+      margin-bottom: 12px;                   /* ระยะห่างด้านล่าง */
+    }
+
+    .stat {
+      background: #111;          /* พื้นหลังเข้ม */
+      border-radius: 8px;        /* มุมโค้ง */
+      padding: 10px;             /* padding */
+      text-align: center;        /* จัดข้อความกึ่งกลาง */
+    }
+
+    .stat .n {
+      font-size: 20px;           /* ตัวเลขขนาดใหญ่ */
+      font-weight: 600;          /* ตัวหนา */
+      line-height: 1;            /* ไม่มีระยะห่างพิเศษระหว่างบรรทัด */
+    }
+
+    .stat .l {
+      font-size: 9px;            /* label เล็กมาก */
+      color: #666;               /* สีเทา */
+      margin-top: 2px;           /* ระยะห่างจากตัวเลข */
+      text-transform: uppercase; /* ตัวพิมพ์ใหญ่ */
+      letter-spacing: .05em;    /* เว้นระยะตัวอักษร */
+    }
+
+    /* สีของตัวเลขแต่ละประเภท */
+    .n.t { color: #aaa; }        /* Total - สีเทาอ่อน */
+    .n.p { color: #7dd43a; }     /* Pass - สีเขียว */
+    .n.f { color: #e05050; }     /* Fail - สีแดง */
+
+    /* --- RESULT BUTTONS: ปุ่มสรุป Pass/Fail รวม --- */
+    .res-row {
+      display: flex;             /* จัดเรียงแนวนอน */
+      gap: 8px;                  /* ระยะห่าง */
+      margin-bottom: 12px;       /* ระยะห่างด้านล่าง */
+    }
+
+    .rbtn {
+      flex: 1;                   /* ขยายเท่ากันทั้งสองปุ่ม */
+      padding: 9px;              /* padding */
+      border-radius: 7px;        /* มุมโค้ง */
+      border: 1px solid #2a2a2a; /* เส้นขอบ */
+      background: #0a0a0a;       /* พื้นหลังเข้ม */
+      color: #666;               /* สีเทา (ยังไม่เลือก) */
+      font-size: 12px;           /* ขนาดตัวอักษร */
+      font-weight: 500;          /* น้ำหนักกลาง */
+      cursor: pointer;           /* cursor เป็นมือ */
+      transition: all .12s;     /* animation */
+      font-family: var(--font-sans);
+    }
+
+    .rbtn.sp {                   /* Selected Pass */
+      background: #152b08;       /* พื้นหลังเขียวเข้ม */
+      border-color: #3a7a10;     /* เส้นขอบเขียว */
+      color: #7dd43a;            /* ตัวอักษรเขียว */
+    }
+
+    .rbtn.sf {                   /* Selected Fail */
+      background: #2b0808;       /* พื้นหลังแดงเข้ม */
+      border-color: #7a1010;     /* เส้นขอบแดง */
+      color: #e05050;            /* ตัวอักษรแดง */
+    }
+
+    /* --- SIGNATURE: กล่องลายเซ็น --- */
+    .sign-wrap {
+      border: 1px dashed #252525;/* เส้นประแสดงว่าลากได้ */
+      border-radius: 8px;        /* มุมโค้ง */
+      height: 70px;              /* ความสูงของพื้นที่ลายเซ็น */
+      position: relative;        /* ให้ children ใช้ position absolute ได้ */
+      margin-bottom: 10px;       /* ระยะห่างด้านล่าง */
+      cursor: crosshair;         /* cursor เป็น crosshair เหมาะกับการวาด */
+      overflow: hidden;          /* ซ่อนลายเซ็นที่เกินขอบ */
+    }
+
+    canvas#sc {
+      position: absolute;        /* ทับบน .sign-wrap */
+      inset: 0;                  /* ขยายเต็ม (top:0, right:0, bottom:0, left:0) */
+      width: 100%;               /* เต็มความกว้าง */
+      height: 70px;              /* เต็มความสูง */
+      touch-action: none;        /* ป้องกัน browser จัดการ touch event เอง (เพื่อให้วาดได้) */
+    }
+
+    .sign-ph {
+      position: absolute;        /* ทับอยู่บน canvas */
+      inset: 0;                  /* เต็มพื้นที่ */
+      display: flex;             /* จัดกึ่งกลาง */
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;           /* ขนาดข้อความ placeholder */
+      color: #444;               /* สีเทาเข้ม */
+      pointer-events: none;      /* ป้องกัน placeholder รับ click แทน canvas */
+    }
+
+    .scl {
+      position: absolute;        /* อยู่มุมบนขวาของ sign-wrap */
+      top: 5px;
+      right: 8px;
+      background: none;          /* ไม่มีพื้นหลัง */
+      border: none;              /* ไม่มีเส้นขอบ */
+      color: #555;               /* สีปุ่มลบ */
+      font-size: 10px;           /* ขนาดเล็ก */
+      cursor: pointer;           /* cursor เป็นมือ */
+      z-index: 2;                /* อยู่บน canvas */
+    }
+
+    /* --- SAVE BUTTON: ปุ่มบันทึก --- */
+    .save-btn {
+      width: 100%;               /* เต็มความกว้าง */
+      background: #c8f53a;       /* พื้นหลังสีเหลือง-เขียวสด */
+      color: #0a0a0a;            /* ตัวอักษรสีดำ (contrast สูง) */
+      border: none;              /* ไม่มีเส้นขอบ */
+      border-radius: 8px;        /* มุมโค้ง */
+      padding: 11px;             /* padding */
+      font-size: 13px;           /* ขนาดตัวอักษร */
+      font-weight: 700;          /* ตัวหนา */
+      cursor: pointer;           /* cursor เป็นมือ */
+      font-family: var(--font-sans);
+      display: flex;             /* จัดไอคอนและข้อความ */
+      align-items: center;
+      justify-content: center;
+      gap: 6px;                  /* ระยะห่างระหว่างไอคอนกับข้อความ */
+      transition: opacity .15s; /* animation */
+    }
+
+    .save-btn:hover { opacity: .9; }       /* เข้มขึ้นเล็กน้อยเมื่อ hover */
+    .save-btn:disabled { opacity: .35; cursor: default; } /* จาง ลง เมื่อ disabled */
+
+    /* --- SAVING SPINNER: loading animation ขณะบันทึก --- */
+    .saving-wrap {
+      text-align: center;
+      padding: 20px;
+      display: none;             /* ซ่อนไว้ก่อน */
+    }
+
+    .saving-wrap.show { display: block; } /* แสดงเมื่อกำลังบันทึก */
+
+    .spinner {
+      width: 24px; height: 24px; /* ขนาด spinner */
+      border: 2px solid #222;    /* วงกลมสีเทา */
+      border-top-color: #c8f53a; /* ส่วนบนเป็นสีเขียว (จะหมุน) */
+      border-radius: 50%;        /* ทำให้เป็นวงกลม */
+      animation: spin .7s linear infinite; /* หมุนตลอด 0.7 วินาที/รอบ */
+      margin: 0 auto 10px;       /* จัดกึ่งกลางแนวนอน */
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); } /* หมุน 360 องศา = 1 รอบ */
+    }
+
+    /* --- SUCCESS TOAST: กล่องแจ้งเตือนสำเร็จ --- */
+    .toast {
+      background: #1a3a0a;       /* พื้นหลังเขียวเข้ม */
+      border: 1px solid #3a7a10; /* เส้นขอบเขียว */
+      border-radius: 8px;        /* มุมโค้ง */
+      padding: 10px 14px;        /* padding */
+      margin-bottom: 12px;       /* ระยะห่างด้านล่าง */
+      display: none;             /* ซ่อนไว้ก่อน */
+      align-items: center;       /* จัดกึ่งกลางแนวตั้ง */
+      gap: 8px;                  /* ระยะห่าง */
+    }
+
+    .toast.show { display: flex; } /* แสดงเมื่อบันทึกสำเร็จ */
+
+    .toast i { color: #7dd43a; font-size: 16px; } /* ไอคอน checkmark สีเขียว */
+    .toast span { font-size: 12px; color: #9fe060; } /* ข้อความสีเขียวอ่อน */
+
+    /* --- RECORD CARDS: การ์ดรายการที่บันทึกไว้ใน Records tab --- */
+    .rec-list { display: flex; flex-direction: column; gap: 8px; } /* Stack การ์ดแนวตั้ง */
+
+    .rec-card {
+      background: #111;
+      border: 1px solid #1e1e1e;
+      border-radius: 10px;
+      padding: 12px 14px;
+      cursor: pointer;           /* คลิกได้เพื่อดูรายละเอียด */
+      transition: border-color .15s;
+    }
+
+    .rec-card:hover { border-color: #2a2a2a; } /* เส้นขอบสว่างขึ้นเมื่อ hover */
+
+    .rec-card-top {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    }
+
+    .rec-title { flex: 1; font-size: 13px; font-weight: 500; color: #ddd; }
+
+    /* Badge สี status ของแต่ละ record */
+    .badge-p  { background: #152b08; color: #7dd43a; font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 1px solid #3a7a10; } /* Pass */
+    .badge-f  { background: #2b0808; color: #e05050; font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 1px solid #7a1010; } /* Fail */
+    .badge-p2 { background: #1a2a3a; color: #70b0e0; font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 1px solid #2a5080; } /* In Progress */
+
+    .rec-meta { font-size: 11px; color: #555; display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .rec-stats { display: flex; gap: 6px; margin-top: 6px; }
+
+    /* Mini stat badges */
+    .mini-stat { font-size: 10px; padding: 2px 7px; border-radius: 4px; }
+    .ms-p { background: #152b08; color: #7dd43a; } /* Pass count */
+    .ms-f { background: #2b0808; color: #e05050; } /* Fail count */
+    .ms-n { background: #1e1e1e; color: #666;    } /* Neutral (checked count, photo count) */
+
+    /* --- EMPTY STATE: แสดงเมื่อยังไม่มีข้อมูล --- */
+    .empty-state { text-align: center; padding: 40px 20px; color: #555; }
+    .empty-state i { font-size: 40px; display: block; margin-bottom: 12px; color: #333; }
+    .empty-state p { font-size: 13px; line-height: 1.6; }
+
+    /* --- DELETE BUTTON: ปุ่มลบ record --- */
+    .del-btn {
+      background: none; border: 1px solid #2a2a2a; border-radius: 5px;
+      color: #555; font-size: 11px; padding: 3px 8px;
+      cursor: pointer; transition: all .12s;
+    }
+    .del-btn:hover { border-color: #7a1010; color: #e05050; } /* สีแดงเมื่อ hover */
+
+    /* --- DETAIL MODAL: กล่องรายละเอียดเมื่อคลิก record --- */
+    .detail-modal {
+      background: #0d0d0d; border: 1px solid #1e1e1e; border-radius: 12px;
+      padding: 16px; margin-top: 8px; display: none;
+    }
+    .detail-modal.show { display: block; }
+
+    .dm-hdr {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #1a1a1a;
+    }
+
+    .dm-close {
+      margin-left: auto; background: none; border: none;
+      color: #555; font-size: 18px; cursor: pointer;
+    }
+
+    /* ตาราง detail ใน modal */
+    .dm-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .dm-table td {
+      padding: 5px 8px; border-bottom: 1px solid #161616; vertical-align: top;
+    }
+    .dm-table td:first-child { color: #666; width: 45%; } /* คอลัมน์ชื่อรายการ */
+    .dm-table td:last-child  { color: #ccc; text-align: right; } /* คอลัมน์ผล */
+
+    /* --- EXPORT/CLEAR BUTTONS: ปุ่มใน Dashboard tab --- */
+    .export-btn {
+      background: #111; border: 1px solid #2a2a2a; border-radius: 7px;
+      padding: 8px 14px; color: #bbb; font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; transition: all .12s;
+      font-family: var(--font-sans); width: 100%; margin-bottom: 8px;
+    }
+    .export-btn:hover { border-color: #c8f53a; color: #c8f53a; }
+
+    /* --- DASHBOARD STATS --- */
+    .db-stats {
+      display: grid; grid-template-columns: repeat(2, 1fr); /* 2 คอลัมน์ */
+      gap: 8px; margin-bottom: 12px;
+    }
+
+    .db-stat {
+      background: #111; border: 1px solid #1e1e1e; border-radius: 8px; padding: 10px 12px;
+    }
+    .db-stat .dn { font-size: 18px; font-weight: 600; color: #c8f53a; line-height: 1; }
+    .db-stat .dl { font-size: 10px; color: #666; margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+
+    /* --- FILTER BUTTONS: ปุ่มกรองใน Records tab --- */
+    .filter-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+
+    .filter-btn {
+      background: #111; border: 1px solid #1e1e1e; border-radius: 5px;
+      padding: 4px 10px; font-size: 11px; color: #666;
+      cursor: pointer; transition: all .12s; font-family: var(--font-sans);
+    }
+    .filter-btn.active { border-color: #c8f53a; color: #c8f53a; background: #1a1a0a; }
+
+    /* --- BOTTOM NAV: แถบ navigation ด้านล่าง Gate 1-5 --- */
+    .nav-btm {
+      display: flex; gap: 6px;
+      background: #0d0d0d; border-top: 1px solid #1e1e1e; padding: 6px 16px;
+    }
+
+    .nav-g {
+      flex: 1;                   /* แบ่งพื้นที่เท่ากัน */
+      padding: 5px 2px;
+      border-radius: 5px; border: 1px solid #1e1e1e;
+      background: #0a0a0a; color: #555; font-size: 9px;
+      cursor: pointer; font-family: var(--font-sans); text-align: center;
+      transition: all .12s; line-height: 1.4;
+    }
+
+    .nav-g .dot {
+      width: 4px; height: 4px; border-radius: 50%; /* จุดกลมเล็ก */
+      background: #333; margin: 0 auto 2px; transition: background .12s;
+    }
+
+    .nav-g.done .dot { background: #7dd43a; }  /* สีเขียวเมื่อ gate เสร็จครบ */
+    .nav-g.cur  { border-color: #c8f53a; color: #c8f53a; background: #111; } /* gate ที่กำลังดูอยู่ */
+    .nav-g.cur .dot { background: #c8f53a; } /* จุดสีเหลืองสำหรับ current gate */
+
+  </style>
+</head>
+
+<body>
+<!-- body: เนื้อหาที่ผู้ใช้มองเห็น -->
+
+<!-- ======================================================
+     SECTION 2: HTML STRUCTURE - โครงสร้าง UI
+     ====================================================== -->
+<div class="app">
+  <!-- .app: container หลักของทั้ง application -->
+
+  <!-- TAB BAR: เมนู 3 tab ด้านบน -->
+  <div class="tab-bar">
+    <div class="tab active" id="tabt-form">
+      <!-- id="tabt-form": ใช้ JavaScript สลับ active class -->
+      <i class="ti ti-clipboard-check" style="font-size:13px;margin-right:4px" aria-hidden="true"></i>
+      <!-- ti-clipboard-check: ไอคอนจาก Tabler Icons (font icon) -->
+      Inspection
+    </div>
+    <div class="tab" id="tabt-records">
+      <i class="ti ti-database" style="font-size:13px;margin-right:4px" aria-hidden="true"></i>
+      Records
+      <span id="rec-count-badge" style="background:#1e1e1e;color:#888;font-size:9px;padding:1px 5px;border-radius:10px;margin-left:3px">0</span>
+      <!-- rec-count-badge: แสดงจำนวน records ที่บันทึกไว้ (จะ update โดย JS) -->
+    </div>
+    <div class="tab" id="tabt-dashboard">
+      <i class="ti ti-chart-bar" style="font-size:13px;margin-right:4px" aria-hidden="true"></i>
+      Dashboard
+    </div>
+  </div>
+
+  <!-- ===== TAB 1: INSPECTION FORM ===== -->
+  <div class="panel active" id="tab-form">
+    <!-- panel active: แสดงอยู่ (default) -->
+
+    <!-- Header Bar: แสดงชื่อ app + วันที่ + progress -->
+    <div class="header-bar">
+      <div class="logo">☀</div>
+      <!-- ☀ emoji แทน icon ดวงอาทิตย์ -->
+      <div style="flex:1">
+        <div class="hdr-title">Solar Rooftop Inspection</div>
+        <div class="hdr-sub" id="hdr-date2"></div>
+        <!-- id="hdr-date2": JS จะใส่วันที่ปัจจุบัน -->
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:80px">
+        <div style="font-size:10px;color:#666" id="hdr-prog">0 / 15</div>
+        <!-- แสดงจำนวนข้อที่ตรวจแล้ว / ทั้งหมด 15 ข้อ -->
+        <div class="prog-bar" style="width:80px">
+          <div class="prog-fill" id="prog2" style="width:0%"></div>
+          <!-- prog2: JS จะปรับ width% ตามความคืบหน้า -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification: แสดงเมื่อบันทึกสำเร็จ (ซ่อนไว้ก่อน) -->
+    <div id="save-toast" class="toast">
+      <i class="ti ti-circle-check" aria-hidden="true"></i>
+      <span id="toast-msg">บันทึกเรียบร้อย</span>
+      <!-- toast-msg: JS จะใส่ข้อความรายละเอียดการบันทึก -->
+    </div>
+
+    <!-- Meta Grid: ฟิลด์กรอกข้อมูลโครงการ 4 ช่อง -->
+    <div class="meta-grid">
+      <div class="fld">
+        <label>ชื่อโครงการ</label>
+        <input id="f-proj" placeholder="Project name...">
+        <!-- id="f-proj": JS ดึงค่าตอนบันทึก -->
+      </div>
+      <div class="fld">
+        <label>วันที่</label>
+        <input id="f-dt" type="date">
+        <!-- type="date": browser แสดง date picker อัตโนมัติ -->
+      </div>
+      <div class="fld">
+        <label>สถานที่</label>
+        <input id="f-loc" placeholder="Location...">
+      </div>
+      <div class="fld">
+        <label>ผู้ตรวจสอบ</label>
+        <input id="f-insp" placeholder="Inspector...">
+      </div>
+    </div>
+
+    <!-- Gates Container: JS จะสร้าง gate cards ใส่ตรงนี้ -->
+    <div id="gates-wrap"></div>
+
+    <!-- Summary Section: สรุปผล + ลายเซ็น + ปุ่มบันทึก -->
+    <div class="gate-card" style="margin-top:4px">
+      <div class="gate-hdr" style="cursor:default">
+        <span class="gate-badge" style="background:#888">SUM</span>
+        <span class="gate-name">สรุปผลการตรวจสอบ</span>
+      </div>
+      <div style="padding:12px;border-top:1px solid #181818">
+
+        <!-- ตัวเลขสรุป Checked / Pass / Fail -->
+        <div class="sum-grid">
+          <div class="stat"><div class="n t" id="s2-total">0</div><div class="l">Checked</div></div>
+          <div class="stat"><div class="n p" id="s2-pass">0</div><div class="l">Pass</div></div>
+          <div class="stat"><div class="n f" id="s2-fail">0</div><div class="l">Fail</div></div>
+        </div>
+
+        <!-- ปุ่มเลือกผลรวม: ผ่าน หรือ ไม่ผ่าน -->
+        <div class="res-row">
+          <button class="rbtn" id="rb-p">✓ ผ่าน (Pass)</button>
+          <button class="rbtn" id="rb-f">✗ ไม่ผ่าน (Fail)</button>
+        </div>
+
+        <!-- พื้นที่ลายเซ็น: วาดด้วยนิ้วหรือ mouse บน canvas -->
+        <div class="sign-wrap" id="sw">
+          <canvas id="sc"></canvas>
+          <!-- canvas: พื้นที่วาดภาพ HTML5 ใช้สำหรับลายเซ็น -->
+          <div class="sign-ph" id="sph">✍ ลงนามผู้ตรวจสอบ</div>
+          <!-- sph: placeholder จะหายไปเมื่อเริ่มวาด -->
+          <button class="scl" id="sig-clear-btn">ลบ</button>
+          <!-- sig-clear-btn: JS ผูก event listener สำหรับลบลายเซ็น -->
+        </div>
+
+        <!-- Loading spinner: แสดงขณะบันทึก -->
+        <div class="saving-wrap" id="sav-wrap">
+          <div class="spinner"></div>
+          <div style="font-size:12px;color:#666">กำลังบันทึก...</div>
+        </div>
+
+        <!-- ปุ่มบันทึกหลัก -->
+        <button class="save-btn" id="sbtn">
+          <i class="ti ti-device-floppy" aria-hidden="true"></i>
+          บันทึกผลการตรวจสอบ
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Bottom Navigation: ปุ่ม Gate 1-5 ด้านล่าง JS จะสร้าง -->
+    <div class="nav-btm" id="nav-btm"></div>
+
+  </div><!-- /tab-form -->
+
+  <!-- ===== TAB 2: RECORDS ===== -->
+  <div class="panel" id="tab-records">
+    <!-- Filter Buttons: กรองรายการ -->
+    <div class="filter-row" id="filter-row">
+      <button class="filter-btn active" data-filter="all">ทั้งหมด</button>
+      <!-- data-filter: JS อ่านค่านี้เพื่อรู้ว่ากรองอะไร -->
+      <button class="filter-btn" data-filter="P">Pass</button>
+      <button class="filter-btn" data-filter="F">Fail</button>
+      <button class="filter-btn" data-filter="partial">ยังไม่สมบูรณ์</button>
+    </div>
+
+    <!-- รายการ records (JS จะสร้างใส่ตรงนี้) -->
+    <div id="rec-list-wrap"></div>
+
+    <!-- modal รายละเอียด record (JS จะสร้างเมื่อคลิก) -->
+    <div id="rec-detail"></div>
+  </div>
+
+  <!-- ===== TAB 3: DASHBOARD ===== -->
+  <div class="panel" id="tab-dashboard">
+    <!-- ตัวเลขรวม: 4 กล่อง -->
+    <div class="db-stats">
+      <div class="db-stat"><div class="dn" id="db-total">0</div><div class="dl">Total inspections</div></div>
+      <div class="db-stat"><div class="dn" id="db-pass-rate" style="color:#7dd43a">—</div><div class="dl">Pass rate</div></div>
+      <div class="db-stat"><div class="dn" id="db-items">0</div><div class="dl">Items inspected</div></div>
+      <div class="db-stat"><div class="dn" id="db-fail-items" style="color:#e05050">0</div><div class="dl">Fail items total</div></div>
+    </div>
+
+    <!-- กราฟ pass rate แยกตาม Gate (JS จะสร้าง) -->
+    <div id="db-gate-breakdown" style="margin-bottom:12px"></div>
+
+    <!-- ปุ่ม Export CSV -->
+    <button class="export-btn" id="export-btn">
+      <i class="ti ti-download" aria-hidden="true"></i>
+      Export all records as CSV
+    </button>
+
+    <!-- ปุ่มลบข้อมูลทั้งหมด -->
+    <button class="export-btn" id="clear-btn">
+      <i class="ti ti-trash" aria-hidden="true"></i>
+      Clear all stored data
+    </button>
+  </div>
+
+</div><!-- /.app -->
+
+
+<!-- ======================================================
+     SECTION 3: JAVASCRIPT - ตรรกะการทำงานทั้งหมด
+     ====================================================== -->
+<script>
+
+  /* ============================================================
+     DATA: ข้อมูล Gate และรายการตรวจสอบทั้งหมด 15 ข้อ
+     ============================================================ */
+  const GATES = [
+    {
+      id: 'g1',              // ID สำหรับอ้างอิง DOM element
+      badge: 'Gate 1',       // ป้ายแสดงบนหน้าจอ
+      name: 'งานโครงสร้างและหลังคา', // ชื่อหมวดภาษาไทย
+      sub: 'Structural & Safety',     // ชื่อหมวดภาษาอังกฤษ
+      items: [
+        { id: '1.1', en: 'Roof Inspection',          th: 'ความสมบูรณ์ของหลังคา' },
+        { id: '1.2', en: 'Access Ladder Installation',th: 'การติดตั้งบันไดทางขึ้น' },
+        { id: '1.3', en: 'Walkway & Lifeline',        th: 'ทางเดินและสายช่วยชีวิต' },
+        { id: '1.4', en: 'Mounting Structure',        th: 'โครงสร้างรองรับแผง' }
+      ]
+    },
+    {
+      id: 'g2', badge: 'Gate 2',
+      name: 'งานแผงโซล่าร์ (PV & DC)', sub: 'PV & DC System',
+      items: [
+        { id: '2.1', en: 'PV Module Installation', th: 'การวางและยึดแผงโซล่าร์' },
+        { id: '2.2', en: 'Inverter & Fuse Box',    th: 'จุดติดตั้ง Inverter/Fuse Box' },
+        { id: '2.3', en: 'DC Raceway',             th: 'การเดินรางท่อระบบ DC' },
+        { id: '2.4', en: 'DC Cable Installation',  th: 'การเดินสายเคเบิล DC' }
+      ]
+    },
+    {
+      id: 'g3', badge: 'Gate 3',
+      name: 'ระบบไฟฟ้า AC & Control', sub: 'AC & Control System',
+      items: [
+        { id: '3.1', en: 'AC Raceway Installation', th: 'การเดินรางท่อระบบ AC' },
+        { id: '3.2', en: 'AC Cable Installation',   th: 'การเดินสายเคเบิล AC' },
+        { id: '3.3', en: 'SDB / SMDB Panel',        th: 'การติดตั้งตู้ควบคุมไฟฟ้า' },
+        { id: '3.4', en: 'Inverter Station',         th: 'สถานีอินเวอร์เตอร์' }
+      ]
+    },
+    {
+      id: 'g4', badge: 'Gate 4',
+      name: 'ระบบตรวจสอบและเซนเซอร์', sub: 'Monitoring & Sensors',
+      items: [
+        { id: '4.1', en: 'Weather Sensor',       th: 'เซนเซอร์วัดสภาพอากาศ' },
+        { id: '4.2', en: 'Communication System', th: 'ระบบสื่อสารข้อมูล' },
+        { id: '4.3', en: 'PQ Meter & CT/VT',     th: 'มิเตอร์และอุปกรณ์ป้องกัน' }
+      ]
+    },
+    {
+      id: 'g5', badge: 'Gate 5',
+      name: 'ระบบสนับสนุน', sub: 'Supporting System',
+      items: [
+        { id: '5.1', en: 'Water Cleaning System', th: 'ระบบล้างแผง' }
+      ]
+    }
+  ];
+
+  /* ALL_ITEMS: รวมทุก item จากทุก gate เป็น array เดียว
+     ใช้ flatMap: ทำ map แล้ว flatten array 1 ชั้น
+     ผลลัพธ์: [{id:'1.1',...}, {id:'1.2',...}, ... {id:'5.1',...}] */
+  const ALL_ITEMS = GATES.flatMap(g => g.items);
+
+  /* STATE VARIABLES: ตัวแปรเก็บสถานะแบบฟอร์ม */
+  const form = {
+    checks: {},  // เก็บผล P/F ของแต่ละ item: { '1.1': 'P', '1.2': 'F', ... }
+    remarks: {}, // เก็บหมายเหตุของแต่ละ item: { '1.1': 'ข้อความ...', ... }
+    result: null // ผลรวม: null | 'P' | 'F'
+  };
+
+  let photoData = {};  // เก็บ base64 ของรูปถ่าย: { '1.1': ['data:...', ...], ... }
+
+  /* ตัวแปรสำหรับ signature canvas */
+  let sigOn    = false; // กำลังวาดลายเซ็นอยู่หรือไม่
+  let sigCtx   = null;  // Canvas 2D context สำหรับวาด
+  let sigEmpty = true;  // ลายเซ็นว่างอยู่หรือไม่
+
+  let currentFilter = 'all'; // filter ปัจจุบันใน Records tab
+
+
+  /* ============================================================
+     STORAGE FUNCTIONS: จัดการ localStorage (ฐานข้อมูลฝั่ง browser)
+     ============================================================ */
+
+  function getRecords() {
+    // ดึงข้อมูลทั้งหมดจาก localStorage
+    try {
+      // localStorage.getItem: คืนค่า string หรือ null ถ้าไม่มี key
+      // || '[]': ถ้า null ให้ใช้ '[]' (array ว่าง)
+      // JSON.parse: แปลง JSON string → JavaScript array
+      return JSON.parse(localStorage.getItem('solar_inspections') || '[]');
+    } catch {
+      return []; // ถ้า parse ผิดพลาด (เช่น data เสีย) คืน array ว่าง
+    }
+  }
+
+  function saveRecords(records) {
+    // บันทึกข้อมูลลง localStorage
+    try {
+      // JSON.stringify: แปลง JavaScript array → JSON string
+      // localStorage.setItem: บันทึก string ด้วย key 'solar_inspections'
+      localStorage.setItem('solar_inspections', JSON.stringify(records));
+    } catch {
+      // อาจ fail ถ้า localStorage เต็ม (5MB limit)
+      console.error('Storage failed');
+    }
+  }
+
+
+  /* ============================================================
+     TAB SWITCHING: สลับระหว่าง 3 tab
+     ============================================================ */
+
+  function switchTab(tabName) {
+    // loop ผ่านชื่อ tab ทั้งสาม
+    ['form', 'records', 'dashboard'].forEach(name => {
+      // toggle active class บน tab button และ panel
+      // classList.toggle(class, condition): ใส่/ลบ class ตาม condition
+      document.getElementById('tabt-' + name).classList.toggle('active', name === tabName);
+      document.getElementById('tab-'  + name).classList.toggle('active', name === tabName);
+    });
+    // เรียก render function สำหรับ tab ที่เปิด
+    if (tabName === 'records')   renderRecords(currentFilter);
+    if (tabName === 'dashboard') renderDashboard();
+  }
+
+  /* ผูก event listener กับปุ่ม tab แต่ละอัน
+     ใช้ addEventListener แทน onclick= เพื่อความปลอดภัยและ flexibility */
+  document.getElementById('tabt-form').addEventListener('click',      () => switchTab('form'));
+  document.getElementById('tabt-records').addEventListener('click',   () => switchTab('records'));
+  document.getElementById('tabt-dashboard').addEventListener('click', () => switchTab('dashboard'));
+
+
+  /* ============================================================
+     BUILD FORM: สร้าง HTML ของ gate cards และ check items แบบ dynamic
+     เหตุผลที่สร้างด้วย JS แทน hardcode HTML:
+     - ง่ายต่อการแก้ไขข้อมูลใน GATES array
+     - ผูก event listener ได้ถูกต้องโดยไม่มีปัญหา string escaping
+     ============================================================ */
+
+  function buildForm() {
+    const d = new Date(); // วันที่ปัจจุบัน
+
+    // ใส่วันที่ใน date input (format: YYYY-MM-DD)
+    document.getElementById('f-dt').value = d.toISOString().split('T')[0];
+
+    // แสดงวันที่ในภาษาไทยบน header
+    document.getElementById('hdr-date2').textContent =
+      d.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+    const gatesWrap = document.getElementById('gates-wrap'); // container ของ gate cards
+
+    GATES.forEach((gate, gateIndex) => {
+      // สร้าง card element สำหรับแต่ละ gate
+      const card = document.createElement('div');
+      card.className = 'gate-card';
+      card.id = 'gc-' + gate.id; // id สำหรับ scroll to gate
+
+      /* --- สร้าง Gate Header --- */
+      const hdr = document.createElement('div');
+      hdr.className = 'gate-hdr';
+      // innerHTML: ใส่ HTML สำเร็จรูปข้างใน
+      hdr.innerHTML = `
+        <span class="gate-badge">${gate.badge}</span>
+        <div style="flex:1">
+          <div class="gate-name">${gate.name}</div>
+          <div style="font-size:9px;color:#555;margin-top:1px">${gate.sub}</div>
+        </div>
+        <span class="gate-prog" id="gp-${gate.id}">0/${gate.items.length}</span>
+        <i class="ti ti-chevron-down gate-chev${gateIndex === 0 ? ' open' : ''}"
+           id="gchev-${gate.id}" aria-hidden="true"></i>`;
+      // ผูก click event: toggleGate() จะ collapse/expand gate นี้
+      hdr.addEventListener('click', () => toggleGate(gate.id));
+
+      /* --- สร้าง Gate Body (เนื้อหาที่ซ่อน/แสดง) --- */
+      const body = document.createElement('div');
+      body.className = 'gate-body' + (gateIndex === 0 ? ' open' : ''); // gate แรกเปิดไว้ก่อน
+      body.id = 'gb-' + gate.id;
+
+      /* --- สร้าง Check Item สำหรับแต่ละรายการใน gate --- */
+      gate.items.forEach(item => {
+        const ci = document.createElement('div');
+        ci.className = 'ci';
+        ci.id = 'ci-' + item.id;
+
+        /* Row บนสุดของ item: เลข + ชื่อ + ปุ่ม P/F */
+        const top = document.createElement('div');
+        top.className = 'ci-top';
+        top.innerHTML = `
+          <span class="ci-num">${item.id}</span>
+          <div class="ci-lbl">${item.en}<small>${item.th}</small></div>`;
+
+        /* ปุ่ม P และ F */
+        const pfGroup = document.createElement('div');
+        pfGroup.className = 'pf';
+
+        // สร้างปุ่ม Pass
+        const pbP = document.createElement('button');
+        pbP.className = 'pb P';   // class "pb" + "P" สำหรับ CSS และ query selector
+        pbP.textContent = 'P';
+        pbP.dataset.item = item.id; // data-item attribute ใช้ querySelector
+        pbP.dataset.val  = 'P';
+
+        // สร้างปุ่ม Fail
+        const pbF = document.createElement('button');
+        pbF.className = 'pb F';
+        pbF.textContent = 'F';
+        pbF.dataset.item = item.id;
+        pbF.dataset.val  = 'F';
+
+        /* ผูก event listener กับแต่ละปุ่ม
+           ใช้ closure: item.id จะถูก capture ใน callback */
+        pbP.addEventListener('click', () => handleCheck(item.id, 'P'));
+        pbF.addEventListener('click', () => handleCheck(item.id, 'F'));
+
+        pfGroup.appendChild(pbP);
+        pfGroup.appendChild(pbF);
+        top.appendChild(pfGroup); // เพิ่ม pf group ไปท้าย top row
+
+        /* Textarea หมายเหตุ */
+        const rem = document.createElement('textarea');
+        rem.className = 'ci-rem';
+        rem.placeholder = 'หมายเหตุ...';
+        rem.rows = 1;
+        // บันทึกค่าลง form.remarks ทุกครั้งที่พิมพ์
+        rem.addEventListener('input', () => { form.remarks[item.id] = rem.value; });
+
+        /* Photo upload section */
+        const photoRow = document.createElement('div');
+        photoRow.className = 'photo-row';
+
+        // label ทำหน้าที่เป็นปุ่ม (เชื่อมกับ file input ผ่าน for attribute)
+        const photoLabel = document.createElement('label');
+        photoLabel.className = 'photo-btn-sm';
+
+        // file input ซ่อนไว้ label จะ trigger มัน
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';          // รับเฉพาะไฟล์รูปภาพ
+        fileInput.setAttribute('capture', 'environment'); // ใช้กล้องหลังบนมือถือ
+        fileInput.multiple = true;             // เลือกหลายรูปได้
+        fileInput.style.display = 'none';      // ซ่อน input จริง
+        fileInput.addEventListener('change', () => handlePh(item.id, fileInput));
+
+        photoLabel.innerHTML = `<i class="ti ti-camera" style="font-size:13px" aria-hidden="true"></i>รูปถ่าย`;
+        photoLabel.appendChild(fileInput); // ใส่ file input ไว้ใน label
+
+        // container สำหรับแสดง thumbnail รูปที่อัปโหลด
+        const phPrev = document.createElement('div');
+        phPrev.id = 'ph-prev-' + item.id;
+        phPrev.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap';
+
+        photoRow.appendChild(photoLabel);
+        photoRow.appendChild(phPrev);
+
+        // ประกอบ check item ทั้งหมด
+        ci.appendChild(top);
+        ci.appendChild(rem);
+        ci.appendChild(photoRow);
+        body.appendChild(ci); // เพิ่มใน gate body
+      });
+
+      // ประกอบ gate card
+      card.appendChild(hdr);
+      card.appendChild(body);
+      gatesWrap.appendChild(card); // เพิ่มใน gates container
+    });
+
+    buildNav();    // สร้างปุ่ม navigation ด้านล่าง
+    initSig();     // เตรียม canvas สำหรับลายเซ็น
+    updateStats(); // อัปเดตตัวเลขสรุป
+    updateBadge(); // อัปเดต badge จำนวน records
+  }
+
+
+  /* ============================================================
+     HANDLE CHECK: จัดการเมื่อกดปุ่ม P หรือ F
+     ============================================================ */
+
+  function handleCheck(itemId, val) {
+    // ค้นหาปุ่ม P และ F ของ item นั้น ๆ ด้วย data-item attribute
+    const pbP = document.querySelector(`.pb.P[data-item="${itemId}"]`);
+    const pbF = document.querySelector(`.pb.F[data-item="${itemId}"]`);
+    if (!pbP || !pbF) return; // ป้องกัน error ถ้าหา element ไม่เจอ
+
+    const cur = form.checks[itemId]; // ค่าปัจจุบัน (null, 'P', หรือ 'F')
+
+    if (cur === val) {
+      // กดปุ่มเดิมซ้ำ = ยกเลิกการเลือก (toggle off)
+      form.checks[itemId] = null;
+      pbP.classList.remove('on'); // ลบสีออกจากทั้งสองปุ่ม
+      pbF.classList.remove('on');
+    } else {
+      // กดปุ่มใหม่ = เลือกค่านั้น
+      form.checks[itemId] = val;
+      pbP.classList.remove('on'); // ลบสีทั้งคู่ก่อน
+      pbF.classList.remove('on');
+      // แล้วค่อยใส่สีให้ปุ่มที่ถูกกด
+      if (val === 'P') pbP.classList.add('on');
+      else             pbF.classList.add('on');
+    }
+
+    updateStats();     // อัปเดตตัวเลข 0/15 บน header
+    updateGateProgs(); // อัปเดต "2/4" บน gate header
+    updateNav();       // อัปเดตสีจุดบน bottom nav
+  }
+
+
+  /* ============================================================
+     TOGGLE GATE: เปิด/ปิด gate body (expand/collapse)
+     ============================================================ */
+
+  function toggleGate(gateId) {
+    const body = document.getElementById('gb-'    + gateId); // gate body element
+    const chev = document.getElementById('gchev-' + gateId); // ลูกศร chevron
+    const isOpen = body.classList.contains('open');           // เช็คว่าเปิดอยู่หรือเปล่า
+    body.classList.toggle('open', !isOpen); // สลับ: ถ้าเปิดอยู่→ปิด, ถ้าปิดอยู่→เปิด
+    chev.classList.toggle('open', !isOpen); // หมุนลูกศรตาม state
+  }
+
+
+  /* ============================================================
+     HANDLE PHOTO: อ่านไฟล์รูปและแสดง thumbnail
+     ============================================================ */
+
+  function handlePh(itemId, input) {
+    if (!photoData[itemId]) photoData[itemId] = []; // สร้าง array ถ้ายังไม่มี
+
+    const prev = document.getElementById('ph-prev-' + itemId); // container thumbnail
+
+    // วนลูปไฟล์ที่เลือก (อาจหลายไฟล์)
+    Array.from(input.files).forEach(file => {
+      const reader = new FileReader(); // FileReader API อ่านไฟล์แบบ async
+
+      reader.onload = e => {
+        // e.target.result = base64 data URL ของรูป
+        photoData[itemId].push(e.target.result); // เก็บ base64 ไว้ใน state
+
+        // สร้าง thumbnail img element
+        const img = document.createElement('img');
+        img.src = e.target.result; // ใช้ base64 เป็น src
+        img.className = 'thumb';
+        prev.appendChild(img);
+      };
+
+      reader.readAsDataURL(file); // เริ่มอ่านไฟล์ (async) → จะ trigger onload เมื่อเสร็จ
+    });
+  }
+
+
+  /* ============================================================
+     UPDATE STATS: อัปเดตตัวเลขสรุปและ progress bar
+     ============================================================ */
+
+  function updateStats() {
+    // Object.values: ดึง value ทั้งหมดจาก object
+    // filter(v => v): กรองเอาเฉพาะที่ไม่ใช่ null/undefined/''
+    const vals = Object.values(form.checks).filter(v => v);
+    const pass = vals.filter(v => v === 'P').length; // นับ Pass
+    const fail = vals.filter(v => v === 'F').length; // นับ Fail
+
+    document.getElementById('s2-total').textContent = vals.length; // ตัวเลข Checked
+    document.getElementById('s2-pass').textContent  = pass;
+    document.getElementById('s2-fail').textContent  = fail;
+    document.getElementById('hdr-prog').textContent = vals.length + ' / 15'; // header progress text
+
+    // คำนวณ % และ set width ของ progress bar
+    document.getElementById('prog2').style.width = Math.round(vals.length / 15 * 100) + '%';
+  }
+
+
+  /* ============================================================
+     UPDATE GATE PROGRESS: อัปเดตตัวเลข "2/4" บนหัว gate แต่ละอัน
+     ============================================================ */
+
+  function updateGateProgs() {
+    GATES.forEach(gate => {
+      // นับ item ที่มีค่า (ไม่ใช่ null) ใน gate นั้น
+      const done = gate.items.filter(it => form.checks[it.id]).length;
+      document.getElementById('gp-' + gate.id).textContent = done + '/' + gate.items.length;
+    });
+  }
+
+
+  /* ============================================================
+     SET RESULT: เลือกผลรวม Pass/Fail ของการตรวจทั้งหมด
+     ============================================================ */
+
+  // ผูก event ให้ปุ่มผลรวม
+  document.getElementById('rb-p').addEventListener('click', () => setRes('P'));
+  document.getElementById('rb-f').addEventListener('click', () => setRes('F'));
+
+  function setRes(val) {
+    // toggle: กดซ้ำ = ยกเลิก
+    form.result = (form.result === val) ? null : val;
+
+    // อัปเดต class ของปุ่มทั้งสอง
+    document.getElementById('rb-p').className = 'rbtn' + (form.result === 'P' ? ' sp' : '');
+    document.getElementById('rb-f').className = 'rbtn' + (form.result === 'F' ? ' sf' : '');
+  }
+
+
+  /* ============================================================
+     SIGNATURE: ระบบวาดลายเซ็นบน HTML Canvas
+     ============================================================ */
+
+  function initSig() {
+    const cv = document.getElementById('sc');          // canvas element
+    const sw = document.getElementById('sw');          // sign-wrap container
+    cv.width  = sw.offsetWidth || 300;                 // ตั้งความกว้าง canvas = ความกว้าง wrapper
+    cv.height = 70;                                    // ความสูง 70px
+    sigCtx = cv.getContext('2d');                      // ขอ 2D drawing context
+
+    // ตั้งค่าสไตล์ปากกา
+    sigCtx.strokeStyle = '#c8f53a'; // สีเส้นเหลือง-เขียว
+    sigCtx.lineWidth   = 1.8;       // ความหนาเส้น
+    sigCtx.lineCap     = 'round';   // ปลายเส้นโค้งมน (smooth)
+
+    // helper: แปลง mouse/touch position → canvas coordinate
+    const getPos = (e, el) => {
+      const rect = el.getBoundingClientRect(); // ขนาดและตำแหน่ง element บนหน้าจอ
+      const src  = e.touches ? e.touches[0] : e; // touch หรือ mouse event
+      return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+    };
+
+    /* Mouse Events สำหรับ desktop */
+    cv.addEventListener('mousedown', e => {
+      sigOn = true;                                    // เริ่มวาด
+      const p = getPos(e, cv);
+      sigCtx.beginPath();                              // เริ่ม path ใหม่
+      sigCtx.moveTo(p.x, p.y);                        // ย้าย "ปากกา" ไปตำแหน่งที่คลิก
+      document.getElementById('sph').style.display = 'none'; // ซ่อน placeholder
+      sigEmpty = false;                                // ไม่ว่างแล้ว
+    });
+
+    cv.addEventListener('mousemove', e => {
+      if (!sigOn) return;                              // ถ้าไม่ได้กดค้างไว้ไม่ต้องวาด
+      const p = getPos(e, cv);
+      sigCtx.lineTo(p.x, p.y);                        // ลากเส้นไปตำแหน่งใหม่
+      sigCtx.stroke();                                 // วาดเส้นจริง
+    });
+
+    cv.addEventListener('mouseup', () => { sigOn = false; }); // หยุดวาดเมื่อปล่อย mouse
+
+    /* Touch Events สำหรับ mobile */
+    cv.addEventListener('touchstart', e => {
+      e.preventDefault();                              // ป้องกัน browser scroll เมื่อวาด
+      sigOn = true;
+      const p = getPos(e, cv);
+      sigCtx.beginPath();
+      sigCtx.moveTo(p.x, p.y);
+      document.getElementById('sph').style.display = 'none';
+      sigEmpty = false;
+    }, { passive: false }); // passive: false เพื่อให้ preventDefault() ทำงานได้
+
+    cv.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (!sigOn) return;
+      const p = getPos(e, cv);
+      sigCtx.lineTo(p.x, p.y);
+      sigCtx.stroke();
+    }, { passive: false });
+
+    cv.addEventListener('touchend', () => { sigOn = false; });
+  }
+
+  /* ปุ่มลบลายเซ็น */
+  document.getElementById('sig-clear-btn').addEventListener('click', clrSig);
+
+  function clrSig() {
+    if (sigCtx) sigCtx.clearRect(0, 0, 300, 70); // ลบทุกอย่างบน canvas
+    document.getElementById('sph').style.display = ''; // แสดง placeholder กลับมา
+    sigEmpty = true; // ระบุว่าว่างแล้ว
+  }
+
+
+  /* ============================================================
+     SAVE INSPECTION: บันทึกข้อมูลทั้งหมดลง localStorage
+     ============================================================ */
+
+  document.getElementById('sbtn').addEventListener('click', saveInspection);
+
+  async function saveInspection() {
+    // async function: รองรับ await (asynchronous code)
+    const btn = document.getElementById('sbtn');
+    const sw  = document.getElementById('sav-wrap');
+
+    btn.style.display = 'none';    // ซ่อนปุ่มบันทึก
+    sw.classList.add('show');       // แสดง spinner
+
+    /* สร้าง record object ที่จะบันทึก */
+    const record = {
+      id: 'insp_' + Date.now(), // ID เฉพาะ: "insp_" + unix timestamp (ms) เช่น "insp_1716835200000"
+      ts: new Date().toISOString(), // timestamp แบบ ISO: "2025-05-16T10:30:00.000Z"
+
+      // ดึงค่าจาก input fields
+      project:   document.getElementById('f-proj').value || 'Unnamed Project',
+      location:  document.getElementById('f-loc').value  || '—',
+      inspector: document.getElementById('f-insp').value || '—',
+      date:      document.getElementById('f-dt').value,
+
+      // Spread operator {...obj} = copy ค่า ณ ตอนนั้น (snapshot)
+      checks:  { ...form.checks  },
+      remarks: { ...form.remarks },
+      result: form.result,
+
+      // ถ้าลายเซ็นว่างให้ null, ถ้ามีให้แปลง canvas → base64 PNG string
+      signature: sigEmpty ? null : document.getElementById('sc').toDataURL('image/png'),
+
+      // นับรวมรูปถ่ายทั้งหมดทุก item
+      photoCount: Object.values(photoData).reduce((acc, arr) => acc + (arr ? arr.length : 0), 0),
+
+      // สถิติสรุป
+      stats: {
+        total: Object.values(form.checks).filter(v => v).length,
+        pass:  Object.values(form.checks).filter(v => v === 'P').length,
+        fail:  Object.values(form.checks).filter(v => v === 'F').length
+      }
+    };
+
+    // รอ 800ms จำลอง network delay (ในของจริงอาจส่ง API)
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // บันทึกลง localStorage
+    const records = getRecords();   // ดึงข้อมูลเดิม
+    records.unshift(record);        // unshift: เพิ่มที่ต้น array (ใหม่ขึ้นก่อน)
+    saveRecords(records);           // บันทึกกลับ
+
+    // คืนสถานะ UI
+    sw.classList.remove('show');   // ซ่อน spinner
+    btn.style.display = 'flex';    // แสดงปุ่มกลับมา
+    updateBadge();                 // อัปเดตตัวเลขบน Records tab
+
+    // แสดง toast แจ้งเตือนสำเร็จ
+    const toast = document.getElementById('save-toast');
+    document.getElementById('toast-msg').textContent =
+      'บันทึกเรียบร้อย — ID: ' + record.id.slice(-8) +
+      ' | ' + record.stats.pass + ' pass / ' + record.stats.fail + ' fail';
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4000); // ซ่อนอัตโนมัติหลัง 4 วินาที
+
+    resetForm(); // ล้างฟอร์มสำหรับการตรวจครั้งถัดไป
+  }
+
+
+  /* ============================================================
+     RESET FORM: ล้างทุกอย่างกลับสู่สถานะเริ่มต้น
+     ============================================================ */
+
+  function resetForm() {
+    // ล้าง state objects
+    Object.keys(form.checks).forEach(k  => { form.checks[k]  = null; });
+    Object.keys(form.remarks).forEach(k => { form.remarks[k] = null; });
+    form.result = null;
+    photoData   = {};
+
+    // ลบ class 'on' จากปุ่ม P/F ทั้งหมด
+    document.querySelectorAll('.pb').forEach(b => b.classList.remove('on'));
+
+    // ล้างข้อความใน textarea ทั้งหมด
+    document.querySelectorAll('.ci-rem').forEach(i => i.value = '');
+
+    // ล้าง thumbnail รูปถ่ายทั้งหมด
+    document.querySelectorAll('[id^="ph-prev-"]').forEach(d => d.innerHTML = '');
+
+    // ล้าง input fields
+    document.getElementById('f-proj').value = '';
+    document.getElementById('f-loc').value  = '';
+    document.getElementById('f-insp').value = '';
+    document.getElementById('f-dt').value   = new Date().toISOString().split('T')[0];
+
+    // คืนสถานะปุ่มผลรวม
+    document.getElementById('rb-p').className = 'rbtn';
+    document.getElementById('rb-f').className = 'rbtn';
+
+    clrSig();          // ลบลายเซ็น
+    updateStats();     // อัปเดตตัวเลข
+    updateGateProgs(); // อัปเดต gate progress
+    updateNav();       // อัปเดต bottom nav
+  }
+
+
+  /* ============================================================
+     BUILD NAVIGATION: สร้างปุ่ม Gate 1-5 ที่ด้านล่างหน้า Inspection
+     ============================================================ */
+
+  function buildNav() {
+    const nav = document.getElementById('nav-btm');
+
+    GATES.forEach((gate, index) => {
+      const btn = document.createElement('button');
+      btn.className = 'nav-g' + (index === 0 ? ' cur' : ''); // gate แรก = current
+      btn.id = 'ng-' + gate.id;
+      btn.innerHTML = `<div class="dot"></div>${gate.badge}`; // จุดกลม + ชื่อ gate
+
+      btn.addEventListener('click', () => {
+        // scroll ไปยัง gate card นั้น
+        const el = document.getElementById('gc-' + gate.id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // เปิด gate ถ้าปิดอยู่
+        const body = document.getElementById('gb-' + gate.id);
+        if (!body.classList.contains('open')) toggleGate(gate.id);
+
+        // อัปเดต current gate highlight
+        document.querySelectorAll('.nav-g').forEach(n => n.classList.remove('cur'));
+        btn.classList.add('cur');
+      });
+
+      nav.appendChild(btn);
+    });
+  }
+
+  /* อัปเดตสีจุดบน bottom nav ตามความสมบูรณ์ของแต่ละ gate */
+  function updateNav() {
+    GATES.forEach(gate => {
+      // gate เสร็จ = ทุก item มีค่า (ไม่ใช่ null)
+      const done = gate.items.every(it => form.checks[it.id]);
+      const btn  = document.getElementById('ng-' + gate.id);
+      if (btn) btn.classList.toggle('done', done); // class 'done' = จุดสีเขียว
+    });
+  }
+
+  /* อัปเดตตัวเลขบน Records tab badge */
+  function updateBadge() {
+    document.getElementById('rec-count-badge').textContent = getRecords().length;
+  }
+
+
+  /* ============================================================
+     RECORDS TAB: แสดงรายการ records ที่บันทึกไว้
+     ============================================================ */
+
+  // ผูก event กับปุ่ม filter
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // ลบ active จากทุกปุ่ม แล้วใส่ให้ปุ่มที่กด
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderRecords(btn.dataset.filter); // เรียก render พร้อม filter ที่เลือก
+    });
+  });
+
+  function renderRecords(filter) {
+    currentFilter = filter || 'all';
+    let recs = getRecords(); // ดึงข้อมูลทั้งหมด
+
+    // กรองตาม filter ที่เลือก
+    if (filter === 'P')       recs = recs.filter(r => r.result === 'P');
+    else if (filter === 'F')  recs = recs.filter(r => r.result === 'F');
+    else if (filter === 'partial') recs = recs.filter(r => !r.result);
+    // 'all': ไม่กรอง แสดงทั้งหมด
+
+    const wrap = document.getElementById('rec-list-wrap');
+    document.getElementById('rec-detail').innerHTML = ''; // ล้าง detail modal
+
+    // แสดง empty state ถ้าไม่มีข้อมูล
+    if (!recs.length) {
+      wrap.innerHTML = `<div class="empty-state">
+        <i class="ti ti-database-off" aria-hidden="true"></i>
+        <p>${filter === 'all' ? 'ยังไม่มีข้อมูล\nกรอกแบบฟอร์มและกดบันทึกเพื่อเริ่มต้น' : 'ไม่พบข้อมูลในหมวดนี้'}</p>
+      </div>`;
+      return;
+    }
+
+    wrap.innerHTML = ''; // ล้างของเก่า
+    const list = document.createElement('div');
+    list.className = 'rec-list';
+
+    recs.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'rec-card';
+
+      // แปลง ISO timestamp → วันที่ภาษาไทย
+      const dt = new Date(r.ts).toLocaleString('th-TH', {
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+
+      // เลือก badge ตาม result
+      const badge = r.result === 'P' ? '<span class="badge-p">Pass</span>'
+                  : r.result === 'F' ? '<span class="badge-f">Fail</span>'
+                  :                    '<span class="badge-p2">In Progress</span>';
+
+      card.innerHTML = `
+        <div class="rec-card-top">
+          <div class="rec-title">${r.project}</div>
+          ${badge}
+          <button class="del-btn" data-id="${r.id}">
+            <i class="ti ti-trash" style="font-size:11px" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="rec-meta">
+          <span><i class="ti ti-map-pin" style="font-size:11px" aria-hidden="true"></i> ${r.location}</span>
+          <span><i class="ti ti-user"    style="font-size:11px" aria-hidden="true"></i> ${r.inspector}</span>
+          <span><i class="ti ti-clock"   style="font-size:11px" aria-hidden="true"></i> ${dt}</span>
+        </div>
+        <div class="rec-stats">
+          <span class="mini-stat ms-p">P: ${r.stats.pass}</span>
+          <span class="mini-stat ms-f">F: ${r.stats.fail}</span>
+          <span class="mini-stat ms-n">${r.stats.total}/15 checked</span>
+          ${r.photoCount > 0
+            ? `<span class="mini-stat ms-n"><i class="ti ti-camera" style="font-size:10px" aria-hidden="true"></i> ${r.photoCount}</span>`
+            : ''}
+        </div>`;
+
+      // ปุ่มลบ: หยุด propagation ไม่ให้ trigger click ของ card
+      card.querySelector('.del-btn').addEventListener('click', e => {
+        e.stopPropagation(); // ป้องกัน event bubble ไปที่ card
+        const updated = getRecords().filter(x => x.id !== r.id); // กรองออก
+        saveRecords(updated);
+        renderRecords(currentFilter);
+        updateBadge();
+      });
+
+      // คลิกการ์ด = แสดงรายละเอียด
+      card.addEventListener('click', () => showDetail(r.id));
+      list.appendChild(card);
+    });
+
+    wrap.appendChild(list);
+  }
+
+  /* แสดงรายละเอียดทุกข้อของ record ที่เลือก */
+  function showDetail(id) {
+    const rec = getRecords().find(r => r.id === id); // หา record ด้วย ID
+    if (!rec) return;
+
+    const det = document.getElementById('rec-detail');
+
+    // สร้างแถว table สำหรับทุก item (15 ข้อ)
+    const rows = ALL_ITEMS.map(it => {
+      const v   = rec.checks[it.id]; // ผล P, F, หรือ undefined
+      const col = v === 'P' ? 'color:#7dd43a'
+                : v === 'F' ? 'color:#e05050'
+                :             'color:#555';
+      const rem = rec.remarks[it.id] || '';
+      return `<tr>
+        <td>${it.id} ${it.en}</td>
+        <td style="${col};font-weight:500">
+          ${v || '—'}
+          ${rem ? '<br><span style="color:#666;font-size:10px">' + rem + '</span>' : ''}
+        </td>
+      </tr>`;
+    }).join('');
+
+    det.innerHTML = `
+      <div class="detail-modal show">
+        <div class="dm-hdr">
+          <div style="font-size:13px;font-weight:500;color:#ddd">${rec.project}</div>
+          <div style="font-size:11px;color:#666;margin-left:8px">${rec.date}</div>
+          <button class="dm-close" id="dm-close-btn">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <table class="dm-table">${rows}</table>
+        ${rec.signature
+          ? `<div style="margin-top:10px;border:1px solid #1e1e1e;border-radius:6px;overflow:hidden">
+               <img src="${rec.signature}" style="width:100%;height:60px;object-fit:contain;background:#0a0a0a">
+             </div>`
+          : ''}
+      </div>`;
+
+    // ผูกปุ่มปิด modal
+    document.getElementById('dm-close-btn').addEventListener('click', () => { det.innerHTML = ''; });
+    det.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); // scroll ไปดู
+  }
+
+
+  /* ============================================================
+     DASHBOARD TAB: แสดงสถิติรวมและกราฟ
+     ============================================================ */
+
+  function renderDashboard() {
+    const recs = getRecords();
+
+    // ตัวเลขรวม
+    document.getElementById('db-total').textContent = recs.length;
+
+    // Pass rate: สัดส่วน record ที่ result === 'P'
+    const passRecs = recs.filter(r => r.result === 'P').length;
+    document.getElementById('db-pass-rate').textContent =
+      recs.length ? Math.round(passRecs / recs.length * 100) + '%' : '—';
+
+    // รวมจำนวน item ที่ตรวจสอบแล้วทุก record
+    const totalItems = recs.reduce((acc, r) => acc + r.stats.total, 0);
+    const totalFail  = recs.reduce((acc, r) => acc + r.stats.fail,  0);
+    document.getElementById('db-items').textContent      = totalItems;
+    document.getElementById('db-fail-items').textContent = totalFail;
+
+    const bd = document.getElementById('db-gate-breakdown');
+
+    // ถ้าไม่มีข้อมูล
+    if (!recs.length) {
+      bd.innerHTML = `<div class="empty-state">
+        <i class="ti ti-chart-bar" aria-hidden="true"></i>
+        <p>ยังไม่มีข้อมูลสำหรับแสดงกราฟ</p>
+      </div>`;
+      return;
+    }
+
+    let html = '<div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Pass rate by gate</div>';
+
+    GATES.forEach(gate => {
+      let pts = 0; // จำนวน item ที่ตรวจ (P หรือ F) ทุก record
+      let pss = 0; // จำนวน item ที่ Pass ทุก record
+
+      recs.forEach(r => {
+        gate.items.forEach(it => {
+          if (r.checks[it.id]) {
+            pts++;
+            if (r.checks[it.id] === 'P') pss++;
+          }
+        });
+      });
+
+      const rate = pts ? Math.round(pss / pts * 100) : 0;
+      // สีตาม pass rate: สูง=เขียว, กลาง=ส้ม, ต่ำ=แดง
+      const col = rate >= 80 ? '#7dd43a' : rate >= 50 ? '#EF9F27' : '#e05050';
+
+      // progress bar แนวนอนสำหรับแต่ละ gate
+      html += `<div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+          <span style="color:#bbb">${gate.badge}: ${gate.name}</span>
+          <span style="color:${col};font-weight:500">${pts ? rate + '%' : '—'}</span>
+        </div>
+        <div style="height:6px;background:#1e1e1e;border-radius:3px">
+          <div style="height:100%;width:${rate}%;background:${col};border-radius:3px"></div>
+        </div>
+      </div>`;
+    });
+
+    bd.innerHTML = html;
+  }
+
+
+  /* ============================================================
+     EXPORT CSV: ดาวน์โหลด records ทั้งหมดเป็นไฟล์ CSV
+     ============================================================ */
+
+  document.getElementById('export-btn').addEventListener('click', () => {
+    const recs = getRecords();
+    if (!recs.length) { alert('No records to export'); return; }
+
+    // สร้าง header row
+    const headers = [
+      'ID', 'Timestamp', 'Project', 'Location', 'Inspector', 'Date',
+      'Result', 'Pass', 'Fail', 'Total',
+      // เพิ่ม column สำหรับทุก item (เช่น "1.1_Roof Inspection")
+      ...ALL_ITEMS.map(it => it.id + '_' + it.en.replace(/,/g, ''))
+    ];
+
+    // สร้าง data rows
+    const rows = recs.map(r => [
+      r.id, r.ts, r.project, r.location, r.inspector, r.date,
+      r.result || '', r.stats.pass, r.stats.fail, r.stats.total,
+      // ผล P/F ของแต่ละ item หรือ '' ถ้าไม่ได้ตรวจ
+      ...ALL_ITEMS.map(it => r.checks[it.id] || '')
+    ]);
+
+    // แปลงเป็น CSV string: แต่ละ cell ห่อด้วย " เพื่อรองรับ comma ในข้อมูล
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    // สร้าง Blob และ download link
+    const blob = new Blob([csv], { type: 'text/csv' }); // Blob = binary data
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob); // สร้าง temporary URL
+    a.download = 'solar_inspections_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click(); // trigger download
+  });
+
+
+  /* ============================================================
+     CLEAR ALL: ลบข้อมูลทั้งหมดออกจาก localStorage
+     ============================================================ */
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    // confirm: popup ถามยืนยัน (return true/false)
+    if (confirm('ลบข้อมูลทั้งหมด? This will delete all saved records.')) {
+      localStorage.removeItem('solar_inspections'); // ลบ key ออกจาก localStorage
+      updateBadge();          // อัปเดต badge เป็น 0
+      renderDashboard();      // อัปเดต dashboard (จะแสดง empty state)
+      renderRecords('all');   // อัปเดต records (จะแสดง empty state)
+    }
+  });
+
+
+  /* ============================================================
+     INIT: เริ่มต้นแอป
+     ============================================================ */
+  buildForm(); // สร้าง form UI ทั้งหมด (ทำงานเมื่อ script โหลดเสร็จ)
+
+</script>
+
+</body>
+</html>
